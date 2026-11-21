@@ -1,5 +1,5 @@
 
-python - <<'PY'
+
 import os
 import sys
 import json
