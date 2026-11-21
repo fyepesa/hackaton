@@ -4,7 +4,7 @@
   "pedidos": [
     {
       "id": 1,
-      "cliente": "Cliente A",
+      "cliente": "Cliente",
       "estado": "pendiente"
     },
     {

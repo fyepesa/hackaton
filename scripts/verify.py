@@ -101,6 +101,11 @@ def calculate_hash(content: bytes) -> str:
         hash_value = calculate_hash(b"Hola")
     """
 
+    logger.info(
+        "Calculando SHA-256 del contenido (%s bytes)",
+        len(content)
+    )
+
     # PASO 1:
     # Procesar todos los bytes utilizando SHA-256.
 
@@ -114,6 +119,7 @@ def calculate_hash(content: bytes) -> str:
     # PASO 3:
     # Devolver la huella digital.
 
+    logger.info("SHA-256 calculado correctamente")
     return file_hash
 
 
@@ -155,6 +161,8 @@ def validate_json(content: bytes, source: str) -> dict:
         json.JSONDecodeError:
             Cuando el archivo no es JSON válido.
     """
+
+    logger.info("Validando estructura JSON de %s", source)
 
     # PASO 1:
     # Interpretar los bytes como JSON.
@@ -211,6 +219,12 @@ def validate_json(content: bytes, source: str) -> dict:
     # PASO 7:
     # Devolver el JSON validado.
 
+    logger.info(
+        "%s validado. Versión: %s; pedidos: %s",
+        source,
+        version,
+        len(data["pedidos"])
+    )
     return data
 
 
@@ -239,6 +253,8 @@ def read_efs_file() -> tuple[bytes, dict]:
             Si contiene información inválida.
     """
 
+    logger.info("Leyendo archivo EFS: %s", DATA_FILE)
+
     # PASO 1:
     # Verificar que pedidos.json existe.
 
@@ -251,6 +267,7 @@ def read_efs_file() -> tuple[bytes, dict]:
     # Leer el contenido original como bytes.
 
     content = DATA_FILE.read_bytes()
+    logger.info("Archivo EFS leído (%s bytes)", len(content))
 
     # PASO 3:
     # Validar la estructura JSON.
@@ -303,6 +320,12 @@ def read_s3_backup(
             Si falla la consulta a S3.
     """
 
+    logger.info(
+        "Solicitando respaldo S3. Bucket: %s; clave: %s",
+        S3_BUCKET,
+        backup_key
+    )
+
     # PASO 1:
     # Validar la ruta del respaldo.
     #
@@ -322,6 +345,7 @@ def read_s3_backup(
     # Crear un cliente de Amazon S3.
 
     s3_client = boto3.client("s3")
+    logger.info("Cliente S3 creado; descargando objeto")
 
     # PASO 3:
     # Solicitar el respaldo seleccionado.
@@ -340,11 +364,13 @@ def read_s3_backup(
         content = response["Body"].read()
     finally:
         response["Body"].close()
+    logger.info("Respaldo descargado (%s bytes)", len(content))
 
     # PASO 5:
     # Obtener metadatos guardados por backup.py.
 
     metadata = response.get("Metadata", {})
+    logger.info("Metadatos S3 recibidos: %s", metadata)
 
     # PASO 6:
     # Validar que el contenido sea JSON correcto.
@@ -384,6 +410,7 @@ def read_s3_backup(
             "S3: el respaldo no supera la verificación SHA-256"
         )
 
+    logger.info("SHA-256 del respaldo coincide con sus metadatos")
     logger.info(
         "Respaldo S3 validado. Versión: %s",
         data["version"]
@@ -430,6 +457,8 @@ def compare_files(
             True: archivos idénticos.
             False: se detectaron diferencias.
     """
+
+    logger.info("Comparando archivo EFS con respaldo S3")
 
     # PASO 1:
     # Comparar las versiones.
@@ -518,11 +547,13 @@ def execute_verification(backup_key: str) -> bool:
     # PASO 1:
     # Leer el archivo activo almacenado en EFS.
 
+    logger.info("Etapa 1/3: leer y validar archivo EFS")
     efs_content, efs_data = read_efs_file()
 
     # PASO 2:
     # Descargar el respaldo desde S3.
 
+    logger.info("Etapa 2/3: descargar y validar respaldo S3")
     s3_content, s3_data, _ = read_s3_backup(
         backup_key
     )
@@ -530,6 +561,7 @@ def execute_verification(backup_key: str) -> bool:
     # PASO 3:
     # Comparar ambas versiones de los datos.
 
+    logger.info("Etapa 3/3: comparar versiones e integridad")
     is_valid = compare_files(
         efs_content=efs_content,
         efs_data=efs_data,

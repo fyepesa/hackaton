@@ -106,6 +106,11 @@ def calculate_hash(content: bytes) -> str:
         hash = calculate_hash(b"Hola")
     """
 
+    logger.info(
+        "Calculando SHA-256 del contenido (%s bytes)",
+        len(content)
+    )
+
     # PASO 1:
     # Crear un objeto SHA-256 y procesar los bytes.
 
@@ -119,6 +124,7 @@ def calculate_hash(content: bytes) -> str:
     # PASO 3:
     # Devolver el hash para utilizarlo posteriormente.
 
+    logger.info("SHA-256 calculado correctamente")
     return file_hash
 
 
@@ -158,6 +164,8 @@ def read_data_file() -> tuple[bytes, str]:
             Cuando el archivo no es JSON válido.
     """
 
+    logger.info("Leyendo archivo de datos: %s", DATA_FILE)
+
     # PASO 1:
     # Verificar que el archivo existe y es un archivo.
 
@@ -173,6 +181,7 @@ def read_data_file() -> tuple[bytes, str]:
     # exactamente al contenido respaldado.
 
     content = DATA_FILE.read_bytes()
+    logger.info("Archivo leído (%s bytes)", len(content))
 
     # PASO 3:
     # Interpretar el contenido como JSON.
@@ -233,6 +242,11 @@ def read_data_file() -> tuple[bytes, str]:
     # PASO 9:
     # Devolver el contenido y su versión.
 
+    logger.info(
+        "JSON validado. Versión: %s; pedidos: %s",
+        version,
+        len(data["pedidos"])
+    )
     return content, version
 
 
@@ -286,6 +300,7 @@ def generate_backup_name(version: str) -> str:
     # PASO 3:
     # Devolver la clave generada.
 
+    logger.info("Clave de respaldo generada: %s", backup_key)
     return backup_key
 
 
@@ -331,6 +346,13 @@ def upload_to_s3(
             Problemas del cliente AWS.
     """
 
+    logger.info(
+        "Preparando carga a S3. Bucket: %s; clave: %s; tamaño: %s bytes",
+        S3_BUCKET,
+        backup_key,
+        len(content)
+    )
+
     # PASO 1:
     # Crear el cliente de Amazon S3.
     #
@@ -342,6 +364,7 @@ def upload_to_s3(
     # - Un perfil AWS configurado localmente.
 
     s3_client = boto3.client("s3")
+    logger.info("Cliente S3 creado")
 
     # PASO 2:
     # Subir el contenido original a S3.
@@ -408,21 +431,25 @@ def create_backup() -> str:
     # PASO 1:
     # Leer y validar el archivo JSON.
 
+    logger.info("Etapa 1/4: leer y validar archivo de datos")
     content, version = read_data_file()
 
     # PASO 2:
     # Calcular el hash del contenido.
 
+    logger.info("Etapa 2/4: calcular hash de integridad")
     file_hash = calculate_hash(content)
 
     # PASO 3:
     # Generar un nombre para el respaldo.
 
+    logger.info("Etapa 3/4: generar clave del respaldo")
     backup_key = generate_backup_name(version)
 
     # PASO 4:
     # Enviar la copia a S3.
 
+    logger.info("Etapa 4/4: cargar respaldo a S3")
     upload_to_s3(
         content=content,
         version=version,
